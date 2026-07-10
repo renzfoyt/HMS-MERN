@@ -2,9 +2,22 @@ import React, { useEffect, useMemo, useState } from "react";
 import { API_BASE_URL } from "../config/api";
 
 const TIME_SLOTS = [
-  "8:00 AM", "8:30 AM", "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM",
-  "11:00 AM", "11:30 AM", "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM",
-  "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM",
+  "8:00 AM",
+  "8:30 AM",
+  "9:00 AM",
+  "9:30 AM",
+  "10:00 AM",
+  "10:30 AM",
+  "11:00 AM",
+  "11:30 AM",
+  "1:00 PM",
+  "1:30 PM",
+  "2:00 PM",
+  "2:30 PM",
+  "3:00 PM",
+  "3:30 PM",
+  "4:00 PM",
+  "4:30 PM",
 ];
 
 const INITIAL_FORM = {
@@ -78,7 +91,10 @@ const BookAppointment = () => {
   }, [doctors, form.department]);
 
   const handleChange = (field) => (e) => {
-    const { value } = e.target;
+    const value =
+      field === "mobileNum"
+        ? e.target.value.replace(/\D/g, "").slice(0, 11)
+        : e.target.value;
     setForm((prev) => ({
       ...prev,
       [field]: value,
@@ -106,7 +122,10 @@ const BookAppointment = () => {
       !form.mobileNum ||
       !form.email
     ) {
-      setStatus({ type: "error", message: "Please fill out all required fields." });
+      setStatus({
+        type: "error",
+        message: "Please fill out all required fields.",
+      });
       return;
     }
 
@@ -117,26 +136,31 @@ const BookAppointment = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          mobileNum: Number(form.mobileNum),
+          mobileNum: form.mobileNum,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data?.message || "Something went wrong. Please try again.");
+        throw new Error(
+          data?.message || "Something went wrong. Please try again.",
+        );
       }
 
       setStatus({
         type: "success",
-        message: "Your appointment request has been received. We'll contact you shortly to confirm.",
+        message:
+          "Your appointment request has been received. We'll contact you shortly to confirm.",
       });
       setForm(INITIAL_FORM);
     } catch (err) {
       console.error("Error submitting booking:", err);
       setStatus({
         type: "error",
-        message: err.message || "Unable to submit your request right now. Please try again later.",
+        message:
+          err.message ||
+          "Unable to submit your request right now. Please try again later.",
       });
     } finally {
       setSubmitting(false);
@@ -169,7 +193,9 @@ const BookAppointment = () => {
               className={inputClasses}
             >
               <option value="">
-                {loadingDoctors ? "Loading departments..." : "Select Department"}
+                {loadingDoctors
+                  ? "Loading departments..."
+                  : "Select Department"}
               </option>
               {departmentOptions.map((dep) => (
                 <option key={dep} value={dep}>

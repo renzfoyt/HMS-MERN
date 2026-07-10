@@ -32,7 +32,7 @@ export const login = asyncHandler(async (req, res) => {
   const token = jwt.sign(
     { id: admin._id, username: admin.username },
     process.env.JWT_SECRET,
-    { expiresIn: "8h" }
+    { expiresIn: "2 h" }
   );
 
   res.status(200).json({

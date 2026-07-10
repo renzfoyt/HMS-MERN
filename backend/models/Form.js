@@ -11,7 +11,7 @@ const contactFormSchema = new mongoose.Schema({
     required: true,
   },
   mobileNum: {
-    type: Number,
+    type: String,
     required: true,
   },
   message: {
@@ -57,7 +57,7 @@ const bookingFormSchema = new mongoose.Schema({
     required: true,
   },
   mobileNum: {
-    type: Number,
+    type: String,
     required: true,
   },
   email: {

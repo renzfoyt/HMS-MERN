@@ -14,7 +14,6 @@ import photoserv4 from "../Assets/Services/specialcare.webp";
 import photoserv5 from "../Assets/Services/eyecenter.webp";
 import photoserv6 from "../Assets/Services/healthpack.webp";
 
-
 const slides = [
   { type: "image", src: photo1 },
   { type: "image", src: photo2 },
@@ -41,7 +40,8 @@ const SERVICES = [
     id: "laboratory-services",
     title: "Laboratory Services",
     image: photoserv3,
-    blurb: "Comprehensive diagnostic testing with fast, reliable results to support your healthcare needs.",
+    blurb:
+      "Comprehensive diagnostic testing with fast, reliable results to support your healthcare needs.",
   },
   {
     id: "special",
@@ -61,7 +61,8 @@ const SERVICES = [
     id: "health",
     title: "Health Packages",
     image: photoserv6,
-    blurb: "Preventive health checkup packages designed to monitor your overall health and detect potential issues early.",
+    blurb:
+      "Preventive health checkup packages designed to monitor your overall health and detect potential issues early.",
   },
 ];
 
@@ -80,7 +81,11 @@ const Home = () => {
   const [contactStatus, setContactStatus] = useState({ type: "", message: "" });
 
   const handleContactChange = (field) => (e) => {
-    setContactForm((prev) => ({ ...prev, [field]: e.target.value }));
+    const value =
+      field === "mobileNum"
+        ? e.target.value.replace(/\D/g, "").slice(0, 11)
+        : e.target.value;
+    setContactForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleContactSubmit = async (e) => {
@@ -107,7 +112,7 @@ const Home = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...contactForm,
-          mobileNum: Number(contactForm.mobileNum),
+          mobileNum: contactForm.mobileNum,
         }),
       });
 
@@ -365,7 +370,7 @@ const Home = () => {
                 />
               </svg>
             )}
-            {contactSubmitting ? 'Sending...' : 'Send Message'}
+            {contactSubmitting ? "Sending..." : "Send Message"}
           </button>
         </form>
       </section>

@@ -1,22 +1,9 @@
 import { z } from "zod";
 
-/**
- * NOTE on mobileNum: the Mongoose models currently store this as a Number,
- * and the frontend does Number(form.mobileNum) before sending it — which
- * silently drops the leading 0 on PH mobile numbers (e.g. "09171234567"
- * becomes 9171234567). This schema validates length only (10-11 digits)
- * to match what's actually arriving today. Switching mobileNum to String
- * end-to-end (frontend + Mongoose schema) is a separate follow-up so the
- * leading zero is preserved — flagged separately, not fixed here.
- */
-const mobileNum = z.coerce
-  .number({ message: "Mobile number is required" })
-  .int("Mobile number must not contain decimals")
-  .positive("Mobile number is required")
-  .refine((val) => {
-    const digits = String(val).length;
-    return digits === 10 || digits === 11;
-  }, "Must be a valid PH mobile number (10-11 digits)");
+const mobileNum = z
+  .string({ message: "Mobile number is required" })
+  .trim()
+  .regex(/^09\d{9}$/, "Must be a valid PH mobile number (e.g. 09171234567)");
 
 export const contactFormSchema = z.object({
   name: z.string({ message: "Name is required" }).trim().min(1, "Name is required").max(150),
