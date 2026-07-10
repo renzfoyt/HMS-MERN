@@ -5,9 +5,18 @@ import { Admin } from "../models/Admin.js";
 
 dotenv.config();
 
-// 👇 Change these before running
-const USERNAME = "admin";
-const PASSWORD = "admin123";  //change in production
+// Usage: node scripts/createAdmin.js <username> <password>
+const [USERNAME, PASSWORD] = process.argv.slice(2);
+
+if (!USERNAME || !PASSWORD) {
+  console.error("Usage: node scripts/createAdmin.js <username> <password>");
+  process.exit(1);
+}
+
+if (PASSWORD.length < 8) {
+  console.error("Password must be at least 8 characters.");
+  process.exit(1);
+}
 
 async function createAdmin() {
   try {
