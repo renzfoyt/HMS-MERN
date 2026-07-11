@@ -8,14 +8,25 @@ const Carousel = ({
   title,
   subtitle,
 }) => {
-  const [current, setCurrent] = useState(0);
+  // The normal carousel (autoplay, arrows, dots) only ever cycles through
+  // image slides — the video slide is excluded from that rotation
+  // entirely. `imagePointer` tracks position within that image-only list.
+  const imageIndices = slides.reduce((acc, slide, index) => {
+    if (slide.type !== "video") acc.push(index);
+    return acc;
+  }, []);
+  const videoSlideIndex = slides.findIndex((s) => s.type === "video");
+
+  const [imagePointer, setImagePointer] = useState(0);
+  // videoMode: true only while the video slide is actively shown — the
+  // only way in is the "Watch Video" button, never autoplay/arrows/dots.
+  const [videoMode, setVideoMode] = useState(false);
   const [loadedIndices, setLoadedIndices] = useState(() => new Set([0]));
   const timerRef = useRef(null);
   const videoRefs = useRef([]);
 
-  // Lazy-load: only mount a slide's media once the carousel actually
-  // reaches it. Previously-visited slides stay mounted so going back
-  // doesn't re-trigger a load.
+  const current = videoMode ? videoSlideIndex : (imageIndices[imagePointer] ?? 0);
+
   useEffect(() => {
     setLoadedIndices((prev) => {
       if (prev.has(current)) return prev;
@@ -25,34 +36,60 @@ const Carousel = ({
     });
   }, [current]);
 
-  const goTo = useCallback(
-    (index) => {
-      setCurrent((index + slides.length) % slides.length);
+  // Arrows / dots — image-only navigation, always drops out of video mode.
+  const goToImage = useCallback(
+    (pointerIndex) => {
+      setVideoMode(false);
+      const len = imageIndices.length;
+      if (len === 0) return;
+      setImagePointer(((pointerIndex % len) + len) % len);
     },
-    [slides.length],
+    [imageIndices.length],
   );
 
-  const next = useCallback(() => goTo(current + 1), [current, goTo]);
-  const prev = useCallback(() => goTo(current - 1), [current, goTo]);
+  const nextImage = useCallback(
+    () => goToImage(imagePointer + 1),
+    [goToImage, imagePointer],
+  );
+  const prevImage = useCallback(
+    () => goToImage(imagePointer - 1),
+    [goToImage, imagePointer],
+  );
 
-  const currentSlide = slides[current];
-  const isOnVideoSlide = currentSlide?.type === "video";
+  // The ONLY entry point into the video slide.
+  const watchVideo = useCallback(() => {
+    if (videoSlideIndex === -1) return;
+    setLoadedIndices((prevSet) => {
+      if (prevSet.has(videoSlideIndex)) return prevSet;
+      const nextSet = new Set(prevSet);
+      nextSet.add(videoSlideIndex);
+      return nextSet;
+    });
+    setVideoMode(true);
+  }, [videoSlideIndex]);
 
-  // Autoplay timer — only drives image slides. Video slides advance via
-  // their own onEnded handler below, so the carousel waits for the full
-  // video to finish before moving on.
+  // Exit the video (button, or the video finishing on its own) — return
+  // to the image carousel and continue forward.
+  const exitVideo = useCallback(() => {
+    setVideoMode(false);
+    nextImage();
+  }, [nextImage]);
+
+  // Autoplay timer — image slides only, paused while video is engaged.
   useEffect(() => {
-    if (slides.length <= 1 || isOnVideoSlide) return;
+    if (imageIndices.length <= 1 || videoMode) return;
     timerRef.current = setInterval(() => {
-      setCurrent((prevIndex) => (prevIndex + 1) % slides.length);
+      setImagePointer((p) => (p + 1) % imageIndices.length);
     }, autoPlayInterval);
     return () => clearInterval(timerRef.current);
-  }, [current, slides.length, autoPlayInterval, isOnVideoSlide]);
+  }, [imagePointer, imageIndices.length, autoPlayInterval, videoMode]);
 
+  // Drives actual play/pause/mute state on the <video> element.
   useEffect(() => {
     videoRefs.current.forEach((videoEl, index) => {
       if (!videoEl) return;
-      if (index === current) {
+      if (index === current && videoMode) {
+        videoEl.muted = false;
         videoEl.currentTime = 0;
         const playPromise = videoEl.play();
         if (playPromise !== undefined) {
@@ -60,9 +97,10 @@ const Carousel = ({
         }
       } else {
         videoEl.pause();
+        videoEl.muted = true;
       }
     });
-  }, [current, loadedIndices]);
+  }, [current, videoMode, loadedIndices]);
 
   if (!slides.length) return null;
 
@@ -79,20 +117,23 @@ const Carousel = ({
             }`}
           >
             {!loadedIndices.has(index) ? (
-              // Not reached yet — render nothing so the browser never
-              // fetches this slide's image/video until it's needed.
               <div className="h-full w-full bg-black" />
             ) : slide.type === "video" ? (
               <video
                 ref={(el) => (videoRefs.current[index] = el)}
-                src={slide.src}
-                muted
+                muted={!(index === current && videoMode)}
+                controls={index === current && videoMode}
                 playsInline
                 disablePictureInPicture
                 preload={index === current ? "auto" : "metadata"}
                 className="h-full w-full object-cover"
-                onEnded={next}
-              />
+                onEnded={exitVideo}
+              >
+                {slide.webmSrc && (
+                  <source src={slide.webmSrc} type="video/webm" />
+                )}
+                <source src={slide.src} type="video/mp4" />
+              </video>
             ) : (
               <img
                 src={slide.src}
@@ -107,11 +148,13 @@ const Carousel = ({
         ))}
       </div>
 
-      {/* Dark tint overlay */}
-      <div className="absolute inset-0 z-[15] bg-green-950/60 pointer-events-none"></div>
+      {/* Dark tint overlay — hidden while the video is actively playing */}
+      {!videoMode && (
+        <div className="absolute inset-0 z-[15] bg-green-950/60 pointer-events-none"></div>
+      )}
 
-      {/* Standalone centered text — independent of slides */}
-      {(title || subtitle) && (
+      {/* Standalone centered text — hidden during active video playback */}
+      {(title || subtitle) && !videoMode && (
         <div className="absolute inset-0 z-[16] flex flex-col items-center justify-center px-6 text-center pointer-events-none">
           {title && (
             <h2 className="text-2xl font-bold text-white drop-shadow-md sm:text-4xl md:text-5xl">
@@ -126,11 +169,56 @@ const Carousel = ({
         </div>
       )}
 
-      {slides.length > 1 && (
+      {/* Watch Video button — the only way into the video slide */}
+      {videoSlideIndex !== -1 && !videoMode && (
+        <button
+          type="button"
+          onClick={watchVideo}
+          className="absolute bottom-4 right-4 z-20 flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-green-800 shadow-lg transition-colors hover:bg-white"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="h-4 w-4"
+          >
+            <path d="M6.3 2.84A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.27l9.34-5.89a1.5 1.5 0 000-2.54L6.3 2.84z" />
+          </svg>
+          Watch our video
+        </button>
+      )}
+
+      {/* Exit Video button — the only way out of the video slide, besides
+          it finishing on its own */}
+      {videoMode && (
+        <button
+          type="button"
+          onClick={exitVideo}
+          aria-label="Exit video and return to carousel"
+          className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full bg-black/50 px-3 py-2 text-sm font-semibold text-white shadow-lg transition-colors hover:bg-black/70"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="h-4 w-4"
+          >
+            <path
+              fillRule="evenodd"
+              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Exit Video
+        </button>
+      )}
+
+      {/* Arrows — image slides only */}
+      {imageIndices.length > 1 && (
         <>
           <button
             type="button"
-            onClick={prev}
+            onClick={prevImage}
             aria-label="Previous slide"
             className="absolute left-2 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white hover:bg-black/60"
           >
@@ -151,7 +239,7 @@ const Carousel = ({
           </button>
           <button
             type="button"
-            onClick={next}
+            onClick={nextImage}
             aria-label="Next slide"
             className="absolute right-2 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white hover:bg-black/60"
           >
@@ -173,16 +261,19 @@ const Carousel = ({
         </>
       )}
 
-      {slides.length > 1 && (
+      {/* Dots — image slides only */}
+      {imageIndices.length > 1 && (
         <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 gap-2">
-          {slides.map((_, index) => (
+          {imageIndices.map((_, pointerIdx) => (
             <button
-              key={index}
+              key={pointerIdx}
               type="button"
-              onClick={() => goTo(index)}
-              aria-label={`Go to slide ${index + 1}`}
+              onClick={() => goToImage(pointerIdx)}
+              aria-label={`Go to slide ${pointerIdx + 1}`}
               className={`h-2.5 w-2.5 rounded-full transition-colors ${
-                index === current ? "bg-white" : "bg-white/50 hover:bg-white/75"
+                !videoMode && pointerIdx === imagePointer
+                  ? "bg-white"
+                  : "bg-white/50 hover:bg-white/75"
               }`}
             />
           ))}

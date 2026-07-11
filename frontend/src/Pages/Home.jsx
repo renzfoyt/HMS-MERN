@@ -6,7 +6,8 @@ import { API_BASE_URL } from "../config/api";
 import photo1 from "../Assets/Carousel/imgslide1.webp";
 import photo2 from "../Assets/Carousel/imgslide2.webp";
 import photo3 from "../Assets/Carousel/imgslide3.webp";
-import promo from "../Assets/Carousel/olivarezvid.compressed.mp4";
+import promo from "../Assets/Carousel/olivarezvid.mp4";
+import promoWebm from "../Assets/Carousel/olivarezvid.webm";
 
 import photoserv1 from "../Assets/Services/emergency.webp";
 import photoserv2 from "../Assets/Services/radiology.webp";
@@ -19,7 +20,7 @@ const slides = [
   { type: "image", src: photo1 },
   { type: "image", src: photo2 },
   { type: "image", src: photo3 },
-  { type: "video", src: promo },
+  { type: "video", src: promo, webmSrc: promoWebm },
 ];
 
 const SERVICES = [
