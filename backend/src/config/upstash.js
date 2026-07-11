@@ -5,7 +5,9 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const redis = Redis.fromEnv();
+// Exported so other modules (e.g. tokenRevocation) share this single
+// connection instead of each opening their own Redis.fromEnv() instance.
+export const redis = Redis.fromEnv();
 
 //rate limit 100 requests per 15 minutes (general API traffic)
 const rateLimit = new Ratelimit({

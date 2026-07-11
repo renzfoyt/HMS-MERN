@@ -1,9 +1,4 @@
-import { Redis } from "@upstash/redis";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-const redis = Redis.fromEnv();
+import { redis } from "../config/upstash.js";
 
 // Prefix keeps revoked-token keys distinct from rate-limit keys
 // sharing the same Redis instance.
