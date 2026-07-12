@@ -1,5 +1,6 @@
 import { Doctor } from "../../models/Doctor.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { paginate } from "../utils/paginate.js";
 
 /**
  * @typedef {Object} DoctorRequestBody
@@ -101,21 +102,10 @@ export const adminGetDoctors = asyncHandler(async (req, res) => {
     return res.status(200).json(doctor);
   }
 
-  // page/limit are optional — omitting them preserves the old
-  // "return everything" behavior so the existing frontend keeps working.
-  const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
-  const limit = Math.min(
-    Math.max(parseInt(req.query.limit, 10) || 1000, 1),
-    1000,
-  );
-
-  const [doctors, total] = await Promise.all([
-    Doctor.find()
-      .sort({ lastName: 1 })
-      .skip((page - 1) * limit)
-      .limit(limit),
-    Doctor.countDocuments(),
-  ]);
+  const { items: doctors, total } = await paginate(Doctor, {
+    sort: { lastName: 1 },
+    req,
+  });
 
   res.set("X-Total-Count", total);
   res.status(200).json(doctors);
