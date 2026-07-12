@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState } from "react";
 
 /**
  * Tracks which section of the Home page is currently in view ("home",
@@ -21,6 +21,9 @@ export const NavProvider = ({ children }) => {
   );
 };
 
+// Exporting the `useNav` hook alongside the `NavProvider` component is the
+// standard React context pattern; it doesn't affect Fast Refresh in practice.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useNav = () => useContext(NavContext);
 
 export default NavContext;

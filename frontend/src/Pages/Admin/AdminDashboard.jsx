@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import { adminFetch, clearAdminToken } from "../../config/adminAuth";
@@ -37,24 +37,28 @@ const AdminDashboard = () => {
   };
   const [doctorForm, setDoctorForm] = useState(emptyDoctorForm);
 
-  const endpointFor = (tab) => `/${tab === "bookings" ? "admin/bookings" : tab === "contacts" ? "admin/contacts" : "admin/doctors"}`;
+  const endpointFor = (tab) =>
+    `/${tab === "bookings" ? "admin/bookings" : tab === "contacts" ? "admin/contacts" : "admin/doctors"}`;
 
-  const load = useCallback(async (tab) => {
-    setLoading(true);
-    setError("");
-    try {
-      const data = await adminFetch(endpointFor(tab));
-      setItems(Array.isArray(data) ? data : []);
-    } catch (err) {
-      if (err.message === "SESSION_EXPIRED") {
-        navigate("/admin/login", { replace: true });
-        return;
+  const load = useCallback(
+    async (tab) => {
+      setLoading(true);
+      setError("");
+      try {
+        const data = await adminFetch(endpointFor(tab));
+        setItems(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (err.message === "SESSION_EXPIRED") {
+          navigate("/admin/login", { replace: true });
+          return;
+        }
+        setError(err.message || "Failed to load data.");
+      } finally {
+        setLoading(false);
       }
-      setError(err.message || "Failed to load data.");
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
+    },
+    [navigate],
+  );
 
   useEffect(() => {
     load(activeTab);
@@ -65,7 +69,8 @@ const AdminDashboard = () => {
       // Best-effort: revoke the token server-side so it can't be reused
       // even if someone got hold of it before it naturally expires.
       await adminFetch("/auth/logout", { method: "POST" });
-    } catch (err) {
+      // was: } catch (err) {
+    } catch {
       // Token may already be expired/invalid — that's fine, we're
       // logging out either way. No need to surface this to the user.
     } finally {
@@ -124,10 +129,14 @@ const AdminDashboard = () => {
       email: doctor.email || "",
       contactNumber: doctor.contactNumber || "",
       gender: doctor.gender || "",
-      clinicDays: Array.isArray(doctor.clinicDays) ? doctor.clinicDays.join(", ") : "",
+      clinicDays: Array.isArray(doctor.clinicDays)
+        ? doctor.clinicDays.join(", ")
+        : "",
       clinicHourIn: doctor.clinicHourIn || "",
       clinicHourOut: doctor.clinicHourOut || "",
-      hmoAccepted: Array.isArray(doctor.hmoAccepted) ? doctor.hmoAccepted.join(", ") : "",
+      hmoAccepted: Array.isArray(doctor.hmoAccepted)
+        ? doctor.hmoAccepted.join(", ")
+        : "",
       bio: doctor.bio || "",
       status: doctor.status || "active",
     });
@@ -144,8 +153,15 @@ const AdminDashboard = () => {
   const handleSaveDoctor = async (e) => {
     e.preventDefault();
 
-    if (!doctorForm.firstName || !doctorForm.lastName || !doctorForm.specialty || !doctorForm.department) {
-      toast.error("First name, last name, specialty, and department are required.");
+    if (
+      !doctorForm.firstName ||
+      !doctorForm.lastName ||
+      !doctorForm.specialty ||
+      !doctorForm.department
+    ) {
+      toast.error(
+        "First name, last name, specialty, and department are required.",
+      );
       return;
     }
 
@@ -164,10 +180,16 @@ const AdminDashboard = () => {
       bio: doctorForm.bio || undefined,
       status: doctorForm.status || "active",
       clinicDays: doctorForm.clinicDays
-        ? doctorForm.clinicDays.split(",").map((s) => s.trim()).filter(Boolean)
+        ? doctorForm.clinicDays
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
         : [],
       hmoAccepted: doctorForm.hmoAccepted
-        ? doctorForm.hmoAccepted.split(",").map((s) => s.trim()).filter(Boolean)
+        ? doctorForm.hmoAccepted
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
         : [],
     };
 
@@ -175,10 +197,13 @@ const AdminDashboard = () => {
 
     try {
       setSavingDoctor(true);
-      await adminFetch(isEditing ? `/admin/doctors/${editingDoctorId}` : "/admin/doctors", {
-        method: isEditing ? "PUT" : "POST",
-        body: JSON.stringify(payload),
-      });
+      await adminFetch(
+        isEditing ? `/admin/doctors/${editingDoctorId}` : "/admin/doctors",
+        {
+          method: isEditing ? "PUT" : "POST",
+          body: JSON.stringify(payload),
+        },
+      );
       toast.success(isEditing ? "Doctor updated" : "Doctor added");
       setShowDoctorForm(false);
       setEditingDoctorId(null);
@@ -192,7 +217,10 @@ const AdminDashboard = () => {
         navigate("/admin/login", { replace: true });
         return;
       }
-      toast.error(err.message || (isEditing ? "Failed to update doctor." : "Failed to add doctor."));
+      toast.error(
+        err.message ||
+          (isEditing ? "Failed to update doctor." : "Failed to add doctor."),
+      );
     } finally {
       setSavingDoctor(false);
     }
@@ -214,7 +242,9 @@ const AdminDashboard = () => {
       <header className="border-b border-gray-200 bg-white px-6 py-4">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-green-800">Admin Dashboard</h1>
+            <h1 className="text-xl font-bold text-green-800">
+              Admin Dashboard
+            </h1>
             <p className="text-sm text-gray-500">Olivarez General Hospital</p>
           </div>
           <button
@@ -273,30 +303,62 @@ const AdminDashboard = () => {
                 <tr>
                   {activeTab === "bookings" && (
                     <>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Patient</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Department / Service</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Preferred Date</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Contact</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Actions</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Patient
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Department / Service
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Preferred Date
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Contact
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Actions
+                      </th>
                     </>
                   )}
                   {activeTab === "contacts" && (
                     <>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Name</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Message</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Contact</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Actions</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Name
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Message
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Contact
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Actions
+                      </th>
                     </>
                   )}
                   {activeTab === "doctors" && (
                     <>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Name</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Specialty</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Department</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Actions</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Name
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Specialty
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Department
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Actions
+                      </th>
                     </>
                   )}
                 </tr>
@@ -305,24 +367,45 @@ const AdminDashboard = () => {
                 {activeTab === "bookings" &&
                   items.map((b) => (
                     <tr key={b._id}>
-                      <td className="px-4 py-3">{b.firstName} {b.lastName}</td>
-                      <td className="px-4 py-3">{b.department} — {b.service}</td>
                       <td className="px-4 py-3">
-                        {b.preferredDate ? new Date(b.preferredDate).toLocaleDateString() : "—"} {b.preferredTime}
+                        {b.firstName} {b.lastName}
                       </td>
-                      <td className="px-4 py-3">{b.email}<br />{b.mobileNum}</td>
                       <td className="px-4 py-3">
-                        <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                          b.status === "handled" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
-                        }`}>
+                        {b.department} — {b.service}
+                      </td>
+                      <td className="px-4 py-3">
+                        {b.preferredDate
+                          ? new Date(b.preferredDate).toLocaleDateString()
+                          : "—"}{" "}
+                        {b.preferredTime}
+                      </td>
+                      <td className="px-4 py-3">
+                        {b.email}
+                        <br />
+                        {b.mobileNum}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                            b.status === "handled"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
                           {b.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 space-x-2">
-                        <button onClick={() => handleStatusToggle(b._id, b.status)} className="text-green-700 hover:underline">
+                        <button
+                          onClick={() => handleStatusToggle(b._id, b.status)}
+                          className="text-green-700 hover:underline"
+                        >
                           Mark {b.status === "pending" ? "Handled" : "Pending"}
                         </button>
-                        <button onClick={() => handleDelete(b._id)} className="text-red-600 hover:underline">
+                        <button
+                          onClick={() => handleDelete(b._id)}
+                          className="text-red-600 hover:underline"
+                        >
                           Delete
                         </button>
                       </td>
@@ -333,20 +416,39 @@ const AdminDashboard = () => {
                   items.map((c) => (
                     <tr key={c._id}>
                       <td className="px-4 py-3">{c.name}</td>
-                      <td className="px-4 py-3 max-w-xs truncate" title={c.message}>{c.message}</td>
-                      <td className="px-4 py-3">{c.email}<br />{c.mobileNum}</td>
+                      <td
+                        className="px-4 py-3 max-w-xs truncate"
+                        title={c.message}
+                      >
+                        {c.message}
+                      </td>
                       <td className="px-4 py-3">
-                        <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                          c.status === "handled" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
-                        }`}>
+                        {c.email}
+                        <br />
+                        {c.mobileNum}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                            c.status === "handled"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
                           {c.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 space-x-2">
-                        <button onClick={() => handleStatusToggle(c._id, c.status)} className="text-green-700 hover:underline">
+                        <button
+                          onClick={() => handleStatusToggle(c._id, c.status)}
+                          className="text-green-700 hover:underline"
+                        >
                           Mark {c.status === "pending" ? "Handled" : "Pending"}
                         </button>
-                        <button onClick={() => handleDelete(c._id)} className="text-red-600 hover:underline">
+                        <button
+                          onClick={() => handleDelete(c._id)}
+                          className="text-red-600 hover:underline"
+                        >
                           Delete
                         </button>
                       </td>
@@ -356,24 +458,41 @@ const AdminDashboard = () => {
                 {activeTab === "doctors" &&
                   items.map((d) => (
                     <tr key={d._id}>
-                      <td className="px-4 py-3">{d.firstName} {d.lastName}</td>
+                      <td className="px-4 py-3">
+                        {d.firstName} {d.lastName}
+                      </td>
                       <td className="px-4 py-3">{d.specialty}</td>
                       <td className="px-4 py-3">{d.department}</td>
                       <td className="px-4 py-3">
-                        <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                          d.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-200 text-gray-700"
-                        }`}>
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                            d.status === "active"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-200 text-gray-700"
+                          }`}
+                        >
                           {d.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 space-x-2">
-                        <button onClick={() => openEditDoctorForm(d)} className="text-blue-700 hover:underline">
+                        <button
+                          onClick={() => openEditDoctorForm(d)}
+                          className="text-blue-700 hover:underline"
+                        >
                           Edit
                         </button>
-                        <button onClick={() => handleDoctorStatusToggle(d._id, d.status)} className="text-green-700 hover:underline">
+                        <button
+                          onClick={() =>
+                            handleDoctorStatusToggle(d._id, d.status)
+                          }
+                          className="text-green-700 hover:underline"
+                        >
                           Mark {d.status === "active" ? "Inactive" : "Active"}
                         </button>
-                        <button onClick={() => handleDelete(d._id)} className="text-red-600 hover:underline">
+                        <button
+                          onClick={() => handleDelete(d._id)}
+                          className="text-red-600 hover:underline"
+                        >
                           Delete
                         </button>
                       </td>
@@ -407,7 +526,10 @@ const AdminDashboard = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveDoctor} className="space-y-4 text-gray-800">
+            <form
+              onSubmit={handleSaveDoctor}
+              className="space-y-4 text-gray-800"
+            >
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-sm font-semibold text-green-900">
@@ -627,7 +749,11 @@ const AdminDashboard = () => {
                   disabled={savingDoctor}
                   className="rounded-md bg-green-800 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {savingDoctor ? "Saving..." : editingDoctorId ? "Update Doctor" : "Save Doctor"}
+                  {savingDoctor
+                    ? "Saving..."
+                    : editingDoctorId
+                      ? "Update Doctor"
+                      : "Save Doctor"}
                 </button>
               </div>
             </form>

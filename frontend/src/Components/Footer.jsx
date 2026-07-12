@@ -1,4 +1,3 @@
-import React from "react";
 import { NavLink, useLocation, useNavigate } from "react-router";
 import logo from "../Assets/olivarezlogo.png";
 
