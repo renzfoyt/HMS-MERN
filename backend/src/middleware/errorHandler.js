@@ -1,3 +1,5 @@
+import { logger } from "../config/logger.js";
+
 /**
  * Catches requests to routes that don't exist. Register this AFTER all
  * real routes and BEFORE errorHandler.
@@ -15,7 +17,7 @@ export const notFound = (req, res) => {
  * parameters present — that's how Express recognizes it as an error handler.
  */
 export const errorHandler = (err, req, res, next) => {
-  console.error(err);
+  logger.error({ err }, err.message || "Unhandled error");
 
   // Mongoose validation error (e.g. a required field missing at the DB layer,
   // as a backstop behind the zod validation middleware)

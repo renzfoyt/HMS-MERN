@@ -1,4 +1,5 @@
 import rateLimit, { authRateLimit } from "../config/upstash.js";
+import { logger } from "../config/logger.js";
 
 /**
  * Factory: turns any Upstash Ratelimit instance into Express middleware.
@@ -14,7 +15,7 @@ const createRateLimiter = (limiter, message = "Too many requests. Please try aga
       }
       next();
     } catch (error) {
-      console.error("Rate limiter error:", error);
+      logger.error({ err: error }, "Rate limiter error");
       // Respond once and stop — do NOT also call next(error) here, that
       // would send a second response down the chain after headers are
       // already sent.
