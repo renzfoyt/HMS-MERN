@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import pinoHttp from "pino-http";
+import { logger } from "./config/logger.js";
 import formRoutes from "./routes/formRoutes.js";
 import mongoSanitize from "express-mongo-sanitize";
 import rateLimiter from "./middleware/rateLimiter.js";
@@ -13,6 +15,24 @@ import { notFound, errorHandler } from "./middleware/errorHandler.js";
 // this directly (via supertest) without needing a real DB/Redis connection.
 export const createApp = () => {
   const app = express();
+
+  // Trust the first hop proxy (Render/Railway/nginx/etc.) so req.ip reflects
+  // the real client IP instead of the proxy's — critical for the rate
+  // limiter, which keys off req.ip. Without this, all traffic behind a
+  // proxy can share one rate-limit bucket, or worse, be spoofable via
+  // X-Forwarded-For.
+  app.set("trust proxy", 1);
+
+  app.use(
+    pinoHttp({
+      logger,
+      // Keep health checks out of the logs — they'd otherwise spam every
+      // few seconds from uptime monitors/load balancers.
+      autoLogging: {
+        ignore: (req) => req.url === "/api/health",
+      },
+    }),
+  );
 
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
