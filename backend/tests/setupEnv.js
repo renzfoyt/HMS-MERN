@@ -7,3 +7,4 @@ process.env.JWT_SECRET = "test-jwt-secret";
 process.env.MONGO_URI = "mongodb://localhost:27017/hms-test";
 process.env.UPSTASH_REDIS_REST_URL = "https://test-instance.upstash.io";
 process.env.UPSTASH_REDIS_REST_TOKEN = "test-token";
+process.env.LOG_LEVEL = "silent"; // keep pino-http quiet during `npm test`
