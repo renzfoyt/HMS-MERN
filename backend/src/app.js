@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
+import mongoose from "mongoose";
 import { logger } from "./config/logger.js";
 import formRoutes from "./routes/formRoutes.js";
 import mongoSanitize from "express-mongo-sanitize";
@@ -46,6 +47,22 @@ export const createApp = () => {
   // req.query, and req.params — blocks NoSQL operator-injection attempts
   // (e.g. { "username": { "$gt": "" } }) before they ever reach Mongoose.
   app.use(mongoSanitize());
+
+  // Health check — used by hosting platforms (Docker/k8s/Render/Railway) to
+  // know the app is alive and the DB connection is actually up, not just
+  // that the process is running. Placed before the rate limiter since
+  // monitoring pings can be frequent and shouldn't compete with real
+  // traffic for that budget.
+  app.get("/api/health", (req, res) => {
+    const dbConnected = mongoose.connection.readyState === 1; // 1 = connected
+    res.status(dbConnected ? 200 : 503).json({
+      status: dbConnected ? "ok" : "degraded",
+      db: dbConnected ? "connected" : "disconnected",
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   app.use(rateLimiter); // Apply the rate limiter middleware to all routes
   //api
   app.use("/api", formRoutes);
