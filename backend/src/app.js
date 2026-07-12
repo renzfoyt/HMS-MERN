@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import formRoutes from "./routes/formRoutes.js";
+import mongoSanitize from "express-mongo-sanitize";
 import rateLimiter from "./middleware/rateLimiter.js";
 import authRoutes from "./routes/authRoutes.js";
 import doctorRoutes from "./routes/doctorRoutes.js";
@@ -21,6 +22,10 @@ export const createApp = () => {
   app.use(helmet());
   app.use(cors({ origin: allowedOrigins }));
   app.use(express.json({ limit: "100kb" }));
+  // Strips any keys starting with "$" or containing "." from req.body,
+  // req.query, and req.params — blocks NoSQL operator-injection attempts
+  // (e.g. { "username": { "$gt": "" } }) before they ever reach Mongoose.
+  app.use(mongoSanitize());
   app.use(rateLimiter); // Apply the rate limiter middleware to all routes
   //api
   app.use("/api", formRoutes);
