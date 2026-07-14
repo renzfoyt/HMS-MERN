@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "docker": "sudo docker build -t hms-backend-test . && sudo docker run --rm -p 5000:5000 --env-file .env hms-backend-test"
   },
   "keywords": [],
   "author": "",
@@ -25,15 +26,15 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.14.3",
     "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@babel/core": "^8.0.1",
-    "@babel/preset-env": "^8.0.2",
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
     "babel-jest": "^30.4.1",
     "jest": "^30.4.2",
     "nodemon": "^3.1.14",
-    "pino-http": "^11.0.0",
     "pino-pretty": "^13.1.3",
     "supertest": "^7.2.2"
   }
