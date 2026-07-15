@@ -20,7 +20,7 @@ export default {
       },
     },
   },
-  plugins: [require("daisyui")],
+  plugins: [daisyui],
   daisyui: {
     base: false,
   },
