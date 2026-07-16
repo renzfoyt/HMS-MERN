@@ -1,16 +1,20 @@
 import { API_BASE_URL } from "./api";
 
 /**
- * Fetch wrapper for admin API calls. The JWT now lives in an httpOnly
- * cookie — the browser attaches it automatically via credentials:
- * "include". There's no token to read, store, or attach manually.
+ * Fetch wrapper for admin API calls. The JWT lives in an httpOnly cookie —
+ * the browser attaches it automatically via credentials: "include". There's
+ * no token to read, store, or attach manually.
  */
 export async function adminFetch(path, options = {}) {
+  // FormData (file uploads) needs the browser to set its own multipart
+  // boundary in Content-Type — forcing application/json here would break it.
+  const isFormData = options.body instanceof FormData;
+
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(options.headers || {}),
     },
   });

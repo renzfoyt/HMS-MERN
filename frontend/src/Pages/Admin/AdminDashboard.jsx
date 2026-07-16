@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import { adminFetch } from "../../config/adminAuth";
+import { getInitials } from "../../utils/getInitials";
 
 const TABS = [
   { key: "bookings", label: "Bookings" },
@@ -34,8 +35,10 @@ const AdminDashboard = () => {
     hmoAccepted: "",
     bio: "",
     status: "active",
+    photoUrl: "",
   };
   const [doctorForm, setDoctorForm] = useState(emptyDoctorForm);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const endpointFor = (tab) =>
     `/${tab === "bookings" ? "admin/bookings" : tab === "contacts" ? "admin/contacts" : "admin/doctors"}`;
@@ -134,6 +137,36 @@ const AdminDashboard = () => {
     setDoctorForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("photo", file);
+
+    try {
+      setUploadingPhoto(true);
+      const data = await adminFetch("/admin/doctors/upload-photo", {
+        method: "POST",
+        body: formData,
+      });
+      setDoctorForm((prev) => ({ ...prev, photoUrl: data.url }));
+    } catch (err) {
+      if (err.message === "SESSION_EXPIRED") {
+        navigate("/admin/login", { replace: true });
+        return;
+      }
+      toast.error(err.message || "Failed to upload photo.");
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setDoctorForm((prev) => ({ ...prev, photoUrl: "" }));
+  };
+
   const openAddDoctorForm = () => {
     setDoctorForm(emptyDoctorForm);
     setEditingDoctorId(null);
@@ -161,6 +194,7 @@ const AdminDashboard = () => {
         : "",
       bio: doctor.bio || "",
       status: doctor.status || "active",
+      photoUrl: doctor.photoUrl || "",
     });
     setEditingDoctorId(doctor._id);
     setShowDoctorForm(true);
@@ -201,6 +235,7 @@ const AdminDashboard = () => {
       clinicHourOut: doctorForm.clinicHourOut || undefined,
       bio: doctorForm.bio || undefined,
       status: doctorForm.status || "active",
+      photoUrl: doctorForm.photoUrl || undefined,
       clinicDays: doctorForm.clinicDays
         ? doctorForm.clinicDays
             .split(",")
@@ -367,6 +402,9 @@ const AdminDashboard = () => {
                   {activeTab === "doctors" && (
                     <>
                       <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                        Photo
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">
                         Name
                       </th>
                       <th className="px-4 py-3 text-left font-semibold text-gray-600">
@@ -425,7 +463,8 @@ const AdminDashboard = () => {
                             onClick={() => handleStatusToggle(b._id, b.status)}
                             className="text-green-700 hover:underline"
                           >
-                            Mark {b.status === "pending" ? "Handled" : "Pending"}
+                            Mark{" "}
+                            {b.status === "pending" ? "Handled" : "Pending"}
                           </button>
                         )}
                         {b.status !== "cancelled" && (
@@ -492,6 +531,19 @@ const AdminDashboard = () => {
                 {activeTab === "doctors" &&
                   items.map((d) => (
                     <tr key={d._id}>
+                      <td className="px-4 py-3">
+                        {d.photoUrl ? (
+                          <img
+                            src={d.photoUrl}
+                            alt=""
+                            className="h-10 w-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-700 text-xs font-semibold text-white">
+                            {getInitials(d.firstName, d.lastName)}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         {d.firstName} {d.lastName}
                       </td>
@@ -564,6 +616,46 @@ const AdminDashboard = () => {
               onSubmit={handleSaveDoctor}
               className="space-y-4 text-gray-800"
             >
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-green-900">
+                  Profile Photo
+                </label>
+                <div className="flex items-center gap-4">
+                  {doctorForm.photoUrl ? (
+                    <img
+                      src={doctorForm.photoUrl}
+                      alt="Doctor preview"
+                      className="h-16 w-16 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-700 text-lg font-semibold text-white">
+                      {getInitials(doctorForm.firstName, doctorForm.lastName) || "—"}
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-1">
+                    <label className="cursor-pointer rounded-md border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100">
+                      {uploadingPhoto ? "Uploading..." : "Choose Image"}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={handlePhotoUpload}
+                        disabled={uploadingPhoto}
+                        className="hidden"
+                      />
+                    </label>
+                    {doctorForm.photoUrl && (
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="text-xs font-semibold text-red-600 hover:underline"
+                      >
+                        Remove photo
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-sm font-semibold text-green-900">

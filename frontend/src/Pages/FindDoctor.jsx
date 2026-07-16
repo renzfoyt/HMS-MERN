@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { API_BASE_URL } from "../config/api";
+import { getInitials } from "../utils/getInitials";
 
 const DAYS = [
   { code: "Sun", label: "Sunday" },
@@ -22,9 +23,6 @@ const timeToMinutes = (t) => {
   if (period.toUpperCase() === "AM" && h === 12) h = 0;
   return h * 60 + m;
 };
-
-const getInitials = (first, last) =>
-  `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase();
 
 const FindDoctor = () => {
   const [doctors, setDoctors] = useState([]);
@@ -513,9 +511,17 @@ const FindDoctor = () => {
                       key={doc._id}
                       className="rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm"
                     >
-                      <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-green-700 text-4xl font-semibold text-white">
-                        {getInitials(doc.firstName, doc.lastName)}
-                      </div>
+                      {doc.photoUrl ? (
+                        <img
+                          src={doc.photoUrl}
+                          alt={`Dr. ${doc.firstName} ${doc.lastName}`}
+                          className="mx-auto h-32 w-32 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-green-700 text-4xl font-semibold text-white">
+                          {getInitials(doc.firstName, doc.lastName)}
+                        </div>
+                      )}
                       <h3 className="mt-3 text-base font-bold text-gray-900">
                         Dr. {doc.firstName} {doc.lastName}
                       </h3>
