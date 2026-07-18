@@ -18,18 +18,23 @@ const COOKIE_NAME = "adminToken";
 // token-theft path that localStorage was exposed to.
 // secure: only sent over HTTPS in production (allowed over HTTP in dev so
 // localhost keeps working without a local TLS cert).
-// sameSite: "lax" is enough here since the frontend and backend cookie
-// exchange is same-site in the normal deploy shape (or first-party fetch),
-// and "lax" still allows the cookie on normal navigation/top-level requests.
-// TODO: no CSRF token yet. Currently covered by sameSite:"lax" + the
-// explicit CORS allowlist in app.js (blocks cross-site state-changing
-// requests and cross-origin response reads). Revisit if this ever gets
-// multiple admin roles or higher-stakes actions (bulk delete, data export,
-// managing other admins) — add a double-submit CSRF token at that point.
+// sameSite: "none" in production because frontend and backend live on
+// separate onrender.com subdomains — onrender.com is on the Public Suffix
+// List, so those subdomains are cross-SITE to each other (not just
+// cross-origin), and "lax" cookies are never sent on cross-site fetch()
+// calls, only on top-level navigations. "none" requires secure:true, which
+// we already set above. Locally, frontend and backend are same-site
+// (both localhost), so "lax" stays correct there.
+// TODO: sameSite:"none" removes the CSRF protection "lax" used to provide.
+// Currently only mitigated by the explicit CORS allowlist in app.js
+// (blocks cross-site state-changing requests and cross-origin response
+// reads). Add a double-submit CSRF token if this ever gets multiple admin
+// roles or higher-stakes actions (bulk delete, data export, managing
+// other admins).
 const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: "lax",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   maxAge: TOKEN_TTL_SECONDS * 1000,
   path: "/",
 };
